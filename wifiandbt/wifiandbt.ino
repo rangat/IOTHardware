@@ -34,7 +34,7 @@ ESP8266Server server = ESP8266Server(80);
 
 #define MINIMUM_FIRMWARE_VERSION    "0.6.6"
 /* ...hardware SPI, using SCK/MOSI/MISO hardware SPI pins and then user selected CS/IRQ/RST */
-Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_RST);
+//Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_RST);
 
 //////////////////
 // HTTP Strings //
@@ -88,36 +88,34 @@ void setup(void){
   pinMode(MS1, OUTPUT);
   pinMode(MS2, OUTPUT);
   pinMode(EN, OUTPUT);
-  
-  resetEDPins();
-  if ( !ble.begin(VERBOSE_MODE)){
-    error(F("Couldn't find Bluefruit, make sure it's in CoMmanD mode & check wiring?"));
-  }
-  ble.echo(false);
-  ble.info();
 
-  if ( ble.isVersionAtLeast(MINIMUM_FIRMWARE_VERSION) )
-  {
-    if ( !ble.sendCommandCheckOK(F( "AT+BleHIDEn=On" ))) {
-      error(F("Could not enable Keyboard"));
-    }
-  }  
+  resetEDPins();
+
+//  serialTrigger(F("Press any key to set Bluetooth."));
+//  if ( !ble.begin(VERBOSE_MODE)){
+//    error(F("Couldn't find Bluefruit, make sure it's in CoMmanD mode & check wiring?"));
+//  }
+//  ble.echo(false);
+//  ble.info();
+  
 }
 
 void loop(void){
-  int unlockcount = 0;
-  if( ble.waitForOK() && unlockcount == 0)
-  {
-    StepForwardDefault();
-    unlockcount = 1;
-    
-  }else if((!ble.waitForOK()) && unlockcount == 1)
-  {
-    ReverseStepDefault();
-    unlockcount = 0;
-  }
-  resetEDPins();
+//  int unlockcount = 0;
+//  if( ble.waitForOK() && unlockcount == 0)
+//  {
+//    StepForwardDefault();
+//    unlockcount = 1;
+//    
+//  }else if((!ble.waitForOK()) && unlockcount == 1)
+//  {
+//    ReverseStepDefault();
+//    unlockcount = 0;
+//  }
+//  resetEDPins();
+  digitalWrite(EN, LOW);
   serverDemo();
+  resetEDPins();
 }
 
 void initializeESP8266()
@@ -283,41 +281,40 @@ void serverDemo()
       if (client.available()) 
       {
         char c = client.read();
-        
         // if you've gotten to the end of the line (received a newline
         // character) and the line is blank, the http request has ended,
         // so you can send a reply
-        if (c == '\n' && currentLineIsBlank) 
-        {
+
+        
+        if (c == '@'){      // lock statement
+          
           Serial.println(F("Sending HTML page"));
           // send a standard http response header:
           client.print(htmlHeader);
           String htmlBody;
-          // output the value of each analog input pin
-          for (int a = 0; a < 6; a++)
-          {
-            htmlBody += "A";
-            htmlBody += String(a);
-            htmlBody += ": ";
-            htmlBody += String(analogRead(a));
-            htmlBody += "<br>\n";
-          }
-          htmlBody += "</html>\n";
+          htmlBody = "I hate this";
           client.print(htmlBody);
-          
-          break;
-        }
-        if (c == '@'){      // lock statement
-          ReverseStepDefault();
+          Serial.println("Lock request received.");
+          ReverseStepDefault(); 
           break;
         }
         if (c == '!'){      // unlock statement
+          
+          Serial.println(F("Sending HTML page"));
+          // send a standard http response header:
+          client.print(htmlHeader);
+          String htmlBody;
+          htmlBody = "I hate this";
+          client.print(htmlBody);
+          Serial.println("Unlock request received.");
           StepForwardDefault();
+          break;
         }
+       
         if (c == '\n') 
         {
           currentLineIsBlank = true;
-          break;
+          
         }
         else if (c != '\r') 
         {
@@ -339,7 +336,7 @@ void serverDemo()
 void StepForwardDefault()
 {
   digitalWrite(dir, LOW); //Pull direction pin low to move "forward"
-  for(x = 0; x<200; x++){
+  for(x = 0; x<1400; x++){
     digitalWrite(stp,HIGH); //Trigger one step forward
     delay(1);
     digitalWrite(stp,LOW); //Pull step pin low so it can be triggered again
@@ -349,7 +346,7 @@ void StepForwardDefault()
 void ReverseStepDefault()
 {
   digitalWrite(dir, HIGH); //Pull direction pin high to move in "reverse"
-  for(x = 0; x<200; x++){
+  for(x = 0; x<1400; x++){
     digitalWrite(stp,HIGH); //Trigger one step
     delay(1);
     digitalWrite(stp,LOW); //Pull step pin low so it can be triggered again
